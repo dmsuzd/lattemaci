@@ -1,97 +1,98 @@
 import sys
 import sqlite3
-from PyQt6 import uic
-from PyQt6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem
+from PyQt6.QtWidgets import QApplication, QWidget, QTableWidgetItem
+from addEditCoffeeForm import The_Other_Ui_Form
+from mainform import Ui_Form
 
 
-class Coffee(QMainWindow):
+class MyWidget(QWidget, Ui_Form):
     def __init__(self):
         super().__init__()
-        uic.loadUi('main.ui', self)
-        self.cur = sqlite3.connect('coffee.sqlite').cursor()
-        self.see.clicked.connect(self.load_table)
-        self.add_update_btn.clicked.connect(self.add_update)
+        self.setupUi(self)
+        self.db = 'coffee.db'
+        self.btn.clicked.connect(self.change_table)
 
-    def add_update(self):
-        self.add_update_window = AddUpdateBtn(self)
-        self.add_update_window.show()
-    
-    def load_table(self):
-        self.tableWidget.verticalHeader().setVisible(False)
-        self.data = self.cur.execute("Select * from coffee").fetchall()
-        self.tableWidget.setColumnCount(len(self.data[0]))
-        nms = []
-        for i in self.cur.description:
-            nms.append(i[0])
-        self.tableWidget.setHorizontalHeaderLabels(nms)
+    def change_table(self):
+        self.change_form = addEditCoffeeForm(self, self.db)
+        self.change_form.show()
+
+    def loadUi(self):
+        cur = sqlite3.connect(self.db).cursor()
+        result = cur.execute("SELECT * FROM about").fetchall()
+        title = ['ID', 'Название сорта', 'Степень обжарки', 'Молотый/в зернах', 'Описание вкуса', 'Цена',
+                 'Объём упаковки']
+        self.tableWidget.setColumnCount(len(title))
+        self.tableWidget.setHorizontalHeaderLabels(title)
         self.tableWidget.setRowCount(0)
-        for i, row in enumerate(self.data):
-            self.tableWidget.setRowCount(
-                self.tableWidget.rowCount() + 1)
+        for i, row in enumerate(result):
+            self.tableWidget.setRowCount(self.tableWidget.rowCount() + 1)
             for j, elem in enumerate(row):
                 self.tableWidget.setItem(i, j, QTableWidgetItem(str(elem)))
         self.tableWidget.resizeColumnsToContents()
 
+    def enterEvent(self, QEvent):
+        self.loadUi()
 
-class AddUpdateBtn(QMainWindow):
-    def __init__(self, parrent):
+
+class addEditCoffeeForm(QWidget, The_Other_Ui_Form):
+    def __init__(self, *db):
         super().__init__()
-        uic.loadUi('addEditCoffeeForm.ui', self)
-        self.parrent = parrent
-        self.add_btn.clicked.connect(self.add_data)
-        self.update_btn.clicked.connect(self.update_data)
+        self.setupUi(self)
+        self.db = db[-1]
+        self.loadUi()
+        self.tableWidget.itemChanged.connect(self.item_changed)
+        self.save_btn.clicked.connect(self.save_table)
+        self.add_btn.clicked.connect(self.add)
+        self.modified = {}
+        self.new = False
 
-    def get_text(self, text):
-        if not text:
-            raise ValueError
-        text = text.split(";")
-        if len(text) != 7:
-            raise ValueError
-        if not text[0].isdigit() or not text[-1].isdigit() or not text[-2].isdigit():
-            raise ValueError
-        text[0], text[-1], text[-2] = int(text[0]), int(text[-1]), int(text[-2])
-        text = tuple(text)
-        return text
+    def loadUi(self):
+        self.con = sqlite3.connect(self.db)
+        cur = self.con.cursor()
+        result = cur.execute("SELECT * FROM about").fetchall()
+        self.titles = ['ID', 'Название сорта', 'Степень обжарки', 'Молотый/в зернах', 'Описание вкуса', 'Цена',
+                       'Объём упаковки']
+        self.tableWidget.setColumnCount(len(self.titles))
+        self.tableWidget.setHorizontalHeaderLabels(self.titles)
+        self.tableWidget.setRowCount(0)
+        for i, row in enumerate(result):
+            self.tableWidget.setRowCount(self.tableWidget.rowCount() + 1)
+            for j, elem in enumerate(row):
+                self.tableWidget.setItem(i, j, QTableWidgetItem(str(elem)))
+        self.tableWidget.resizeColumnsToContents()
+        self.modified = {}
 
-    def add_data(self):
-        self.statusBar().showMessage("")
-        try:
-            text = self.get_text(self.add_lineedit.text())
-            queue = f"Insert Into coffee VALUES ({int(text[0])}, '{text[1]}', '{text[2]}', '{text[3]}', '{text[4]}', " \
-                    f"{int(text[5])}, {int(text[6])})"
-            self.parrent.cur.execute(queue)
-            self.parrent.cor.commit()
-            self.parrent.load_table()
-        except ValueError:
-            self.statusBar().showMessage("Некорректный ввод")
-        except Exception as e:
-            self.statusBar().showMessage(e)
+    def item_changed(self, item):
+        id = self.tableWidget.item(item.row(), 0).text()
+        self.modified[(self.titles[item.column()], id)] = item.text()
 
-    def update_data(self):
-        self.statusBar().showMessage("")
-        try:
-            first_text = self.get_text(self.check_text_lineedit.text())
-            second_text = self.get_text(self.update_lineedit.text())
-            self.parrent.cur.execute(f"""Update coffee set Название_сорта = '{second_text[1]}', 
-            Степень_обжарки = '{second_text[2]}', Молотый_или_в_зернах = '{second_text[3]}', 
-            Описание_вкуса = '{second_text[4]}', Цена = {second_text[5]}, Объем_упаковки = {second_text[6]}
-            WHERE Id = {first_text[0]} and Название_сорта = '{first_text[1]}' and 
-            Степень_обжарки = '{first_text[2]}' and Молотый_или_в_зернах = '{first_text[3]}' and 
-            Описание_вкуса = '{first_text[4]}' and Цена = {first_text[5]} and Объем_упаковки = {first_text[6]}""")
-            self.parrent.cor.commit()
-            self.parrent.load_table()
-        except ValueError:
-            self.statusBar().showMessage('Некорректный ввод')
-        except Exception as e:
-            self.statusBar().showMessage(e)
+    def save_table(self):
+        if self.modified:
+            if not self.new:
+                cur = self.con.cursor()
+                for key in self.modified.keys():
+                    a = "UPDATE about SET\n [{}]='{}' WHERE id = {}\n"
+                    cur.execute(a.format(key[0], self.modified.get(key), key[1]))
+                self.con.commit()
+            else:
+                vals = [self.tableWidget.item(self.tableWidget.rowCount() - 1, 0).text(),
+                        self.tableWidget.item(self.tableWidget.rowCount() - 1, 1).text(),
+                        self.tableWidget.item(self.tableWidget.rowCount() - 1, 2).text(),
+                        self.tableWidget.item(self.tableWidget.rowCount() - 1, 3).text(),
+                        self.tableWidget.item(self.tableWidget.rowCount() - 1, 4).text(),
+                        self.tableWidget.item(self.tableWidget.rowCount() - 1, 5).text(),
+                        self.tableWidget.item(self.tableWidget.rowCount() - 1, 6).text()]
+                cur = self.con.cursor()
+                cur.execute("INSERT INTO about{} VALUES{}".format(tuple(self.titles), tuple(vals)))
+                self.con.commit()
+                self.new = False
 
-
-def except_hook(cls, exception, traceback):
-    sys.excepthook(cls, exception, traceback)
+    def add(self):
+        self.tableWidget.setRowCount(self.tableWidget.rowCount() + 1)
+        self.new = True
 
 
 if __name__ == '__main__':
-    app, w = QApplication(sys.argv), Coffee()
+    app, w = QApplication(sys.argv), MyWidget()
     w.show()
-    sys.excepthook = except_hook
     sys.exit(app.exec())

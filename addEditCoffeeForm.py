@@ -1,0 +1,46 @@
+from PyQt6 import QtCore, QtGui, QtWidgets
+
+
+class The_Other_Ui_Form(object):
+    def setupUi(self, Form):
+        Form.setObjectName("Form")
+        Form.resize(1324, 657)
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setWeight(75)
+        Form.setFont(font)
+        self.gridLayout = QtWidgets.QGridLayout(Form)
+        self.gridLayout.setObjectName("gridLayout")
+        self.tableWidget = QtWidgets.QTableWidget(Form)
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.tableWidget.setFont(font)
+        self.tableWidget.setObjectName("tableWidget")
+        self.tableWidget.setColumnCount(0)
+        self.tableWidget.setRowCount(0)
+        self.gridLayout.addWidget(self.tableWidget, 2, 0, 1, 1)
+        self.add_btn = QtWidgets.QPushButton(Form)
+        self.add_btn.setObjectName("add_btn")
+        self.gridLayout.addWidget(self.add_btn, 4, 0, 1, 1)
+        self.label = QtWidgets.QLabel(Form)
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        font.setBold(True)
+        font.setWeight(75)
+        self.label.setFont(font)
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
+        self.save_btn = QtWidgets.QPushButton(Form)
+        self.save_btn.setObjectName("save_btn")
+        self.gridLayout.addWidget(self.save_btn, 3, 0, 1, 1)
+        self.retranslateUi(Form)
+        QtCore.QMetaObject.connectSlotsByName(Form)
+
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "Form"))
+        self.add_btn.setText(_translate("Form", "Добавить строчку"))
+        self.label.setText(_translate("Form", "Кофе"))
+        self.save_btn.setText(_translate("Form", "Сохранить изменения"))
